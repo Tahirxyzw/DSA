@@ -200,3 +200,79 @@ class RedBlackTree[T]:
     def _min(self):
         # Finding the minimum value node in subtree
         return self if not self.left else self.left._min()
+
+
+
+
+
+class NaiveBST[T]:
+    value: T
+    left: Optional["NaiveBST[T]"]
+    right: Optional["NaiveBST[T]"]
+
+    def __init__(self, value):
+        self.value = value
+        self.left = None
+        self.right = None
+
+    def insert(self, x: T):
+        if x < self.value:
+            if self.left:
+                self.left.insert(x)
+            else:
+                self.left = NaiveBST(x)
+
+        elif x > self.value:
+            if self.right:
+                self.right.insert(x)
+            else:
+                self.right = NaiveBST(x)
+
+        # not inserting duplicates
+
+   
+    def contains(self, x: T) -> bool:
+        if x == self.value:
+            return True
+        elif x < self.value:
+            return self.left.contains(x) if self.left else False
+        else:
+            return self.right.contains(x) if self.right else False
+
+    
+    def delete(self, x: T):
+        return self._delete(self, x)
+
+    def _delete(self, node: Optional["NaiveBST[T]"], x: T):
+        if node is None:
+            return None
+
+        if x < node.value:
+            node.left = self._delete(node.left, x)
+
+        elif x > node.value:
+            node.right = self._delete(node.right, x)
+
+        else:
+            # Node found
+
+            #  No left child
+            if node.left is None:
+                return node.right
+
+            #  No right child
+            if node.right is None:
+                return node.left
+
+            # Two children
+            successor = self._min(node.right)
+            node.value = successor.value
+            node.right = self._delete(node.right, successor.value)
+
+        return node
+
+    
+    def _min(self, node: "NaiveBST[T]"):
+        while node.left is not None:
+            node = node.left
+        return node
