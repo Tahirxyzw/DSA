@@ -39,240 +39,208 @@ class RedBlackTree[T]:
         for x in xs[1:]:
             tree.insert(x)
         return tree
-    
+
    
-    def contains(self, x: T) -> bool:
-        """Returns true if this tree contains the specified value."""
-        #checking if its the value we are looking for, if not we check if its less than the value and go left otherwise we go right
-        if x == self.value:
-            return True
-        elif x < self.value:
-            return self.left.contains(x) if self.left else False
-        else:
-            return self.right.contains(x) if self.right else False
-    
-   
-    def is_bst(self) -> bool:
-        """Returns true if this tree is a valid binary search tree."""
-        return self._is_bst_helper(None, None)
-    
-    def _is_bst_helper(self, min_val, max_val) -> bool:
-        if min_val is not None and self.value <= min_val:
-            return False
-        if max_val is not None and self.value >= max_val:
-            return False
-        
-        left_ok = (
-            self.left._is_bst_helper(min_val, self.value)
-            if self.left else True
-        )
-        right_ok = (
-            self.right._is_bst_helper(self.value, max_val)
-            if self.right else True
-        )
-        return left_ok and right_ok
-    
-   
-    def is_rbt(self) -> bool:
-        """Returns true if this tree is a valid red-black tree."""
-        # Root of RBT must be black
-        if self.colour != Colour.Black:
-            return False
-        # Must be a valid BST
-        if not self.is_bst():
-            return False
-        # No red-red violations and consistent black height
-        return self._no_red_red() and self._black_height() != -1
-    
-    def _no_red_red(self) -> bool:
-        #Checking that no red node has a red child
-        if self.colour == Colour.Red:
-            if (self.left and self.left.colour == Colour.Red) or \
-               (self.right and self.right.colour == Colour.Red):
-                return False
-        
-        left_ok = self.left._no_red_red() if self.left else True
-        right_ok = self.right._no_red_red() if self.right else True
-        return left_ok and right_ok
-    
-    def _black_height(self) -> int:
-        #Returning black height, or -1 if inconsistent
-        left_h = self.left._black_height() if self.left else 0
-        right_h = self.right._black_height() if self.right else 0
-        
-        if left_h == -1 or right_h == -1 or left_h != right_h:
-            return -1
-        
-        return left_h + (1 if self.colour == Colour.Black else 0)
-    
-  
-    def _is_red(self, node):
-        #Checking if a node is red 
+
+    @staticmethod
+    def _is_red(node: Optional["RedBlackTree[T]"]) -> bool:
         return node is not None and node.colour == Colour.Red
-    
-    def _rotate_left(self):
-        #Performing the left rotation
+
+    def _rotate_left(self) -> "RedBlackTree[T]":
         x = self.right
+        assert x is not None
         self.right = x.left
         x.left = self
         x.colour = self.colour
         self.colour = Colour.Red
         return x
-    
-    def _rotate_right(self):
-        #Performing the right rotation
+
+    def _rotate_right(self) -> "RedBlackTree[T]":
         x = self.left
+        assert x is not None
         self.left = x.right
         x.right = self
         x.colour = self.colour
         self.colour = Colour.Red
         return x
-    
-    def _flip_colours(self):
-        #Flipping colours during balancing
-        self.colour = Colour.Red
-        if self.left:
-            self.left.colour = Colour.Black
-        if self.right:
-            self.right.colour = Colour.Black
-    
 
-    def insert(self, x: T):
-        #Inserting a new element into the correct place in the tree
-        root = self._insert(x)
-        root.colour = Colour.Black
-        return root
-    
-    def _insert(self, x: T):
-        #Helper for insertion with LLRB balancing
-        # BST insert
-        if x < self.value:
-            if self.left:
-                self.left = self.left._insert(x)
-            else:
-                self.left = RedBlackTree(x, Colour.Red)
-        elif x > self.value:
-            if self.right:
-                self.right = self.right._insert(x)
-            else:
-                self.right = RedBlackTree(x, Colour.Red)
-        # not inserting duplicates
-        
-        # Applying LLRB fix up rules
-        return self._fix_up()
-    
+    def _flip_colours(self) -> None:
+        self.colour = Colour.Red if self.colour == Colour.Black else Colour.Black
+        if self.left is not None:
+            self.left.colour = Colour.Red if self.left.colour == Colour.Black else Colour.Black
+        if self.right is not None:
+            self.right.colour = Colour.Red if self.right.colour == Colour.Black else Colour.Black
+
     def _fix_up(self) -> "RedBlackTree[T]":
-        #Fix up after insertion to maintain LLRB properties
-        # If right child is red and left is black rotating left
         if self._is_red(self.right) and not self._is_red(self.left):
             self = self._rotate_left()
-        
-        # If left child is red and its left child is red rotating right
-        if self._is_red(self.left) and self._is_red(self.left.left):
+        if self._is_red(self.left) and self.left is not None and self._is_red(self.left.left):
             self = self._rotate_right()
-        
-        # If both children are red flipping colors
         if self._is_red(self.left) and self._is_red(self.right):
             self._flip_colours()
-        
         return self
-    
-  
-    def delete(self, x: T):
-        """Deletes an element from this tree, if present."""
-        if x < self.value and self.left:
-            self.left = self.left.delete(x)
-        elif x > self.value and self.right:
-            self.right = self.right.delete(x)
-        elif x == self.value:
-            # No left child
-            if not self.left:
-                return self.right
-            # No right child
-            if not self.right:
-                return self.left
-            # Two children - replacing it with the successor
-            successor = self.right._min()
-            self.value = successor.value
-            self.right = self.right.delete(successor.value)
+
+    def _move_red_left(self) -> "RedBlackTree[T]":
+        self._flip_colours()
+        if self.right is not None and self._is_red(self.right.left):
+            self.right = self.right._rotate_right()
+            self = self._rotate_left()
+            self._flip_colours()
         return self
-    
-    def _min(self):
-        # Finding the minimum value node in subtree
-        return self if not self.left else self.left._min()
 
+    def _move_red_right(self) -> "RedBlackTree[T]":
+        self._flip_colours()
+        if self.left is not None and self._is_red(self.left.left):
+            self = self._rotate_right()
+            self._flip_colours()
+        return self
 
+    def _min_node(self) -> "RedBlackTree[T]":
+        cur = self
+        while cur.left is not None:
+            cur = cur.left
+        return cur
 
-
-
-class NaiveBST[T]:
-    value: T
-    left: Optional["NaiveBST[T]"]
-    right: Optional["NaiveBST[T]"]
-
-    def __init__(self, value):
-        self.value = value
-        self.left = None
-        self.right = None
-
-    def insert(self, x: T):
-        if x < self.value:
-            if self.left:
-                self.left.insert(x)
-            else:
-                self.left = NaiveBST(x)
-
-        elif x > self.value:
-            if self.right:
-                self.right.insert(x)
-            else:
-                self.right = NaiveBST(x)
-
-        # not inserting duplicates
-
-   
-    def contains(self, x: T) -> bool:
-        if x == self.value:
-            return True
-        elif x < self.value:
-            return self.left.contains(x) if self.left else False
-        else:
-            return self.right.contains(x) if self.right else False
-
-    
-    def delete(self, x: T):
-        return self._delete(self, x)
-
-    def _delete(self, node: Optional["NaiveBST[T]"], x: T):
-        if node is None:
+    def _delete_min(self) -> Optional["RedBlackTree[T]"]:
+        if self.left is None:
             return None
 
-        if x < node.value:
-            node.left = self._delete(node.left, x)
+        if not self._is_red(self.left) and self.left is not None and not self._is_red(self.left.left):
+            self = self._move_red_left()
 
-        elif x > node.value:
-            node.right = self._delete(node.right, x)
+        assert self.left is not None
+        self.left = self.left._delete_min()
+        return self._fix_up()
 
+    def _insert_rec(self, x: T) -> "RedBlackTree[T]":
+        if x < self.value:
+            if self.left is None:
+                self.left = RedBlackTree(x, Colour.Red)
+            else:
+                self.left = self.left._insert_rec(x)
+        elif x > self.value:
+            if self.right is None:
+                self.right = RedBlackTree(x, Colour.Red)
+            else:
+                self.right = self.right._insert_rec(x)
         else:
-            # Node found
+            raise RuntimeError("Duplicate key insertion is not allowed")
 
-            #  No left child
-            if node.left is None:
-                return node.right
+        return self._fix_up()
 
-            #  No right child
-            if node.right is None:
-                return node.left
+    def _delete_rec(self, x: T) -> Optional["RedBlackTree[T]"]:
+        if x < self.value:
+            if self.left is None:
+                return self  # not found
+            if not self._is_red(self.left) and self.left is not None and not self._is_red(self.left.left):
+                self = self._move_red_left()
+            assert self.left is not None
+            self.left = self.left._delete_rec(x)
+        else:
+            if self._is_red(self.left):
+                self = self._rotate_right()
 
-            # Two children
-            successor = self._min(node.right)
-            node.value = successor.value
-            node.right = self._delete(node.right, successor.value)
+            if x == self.value and self.right is None:
+                return None
 
-        return node
+            if self.right is None:
+                return self  # not found
+
+            if not self._is_red(self.right) and self.right is not None and not self._is_red(self.right.left):
+                self = self._move_red_right()
+
+            if x == self.value:
+                succ = self.right._min_node()
+                self.value = succ.value
+                self.right = self.right._delete_min()
+            else:
+                self.right = self.right._delete_rec(x)
+
+        return self._fix_up()
 
     
-    def _min(self, node: "NaiveBST[T]"):
-        while node.left is not None:
-            node = node.left
-        return node
+
+    def is_bst(self) -> bool:
+        """Returns true if this tree is a valid binary search tree."""
+
+        def go(node: Optional["RedBlackTree[T]"], lo: Optional[T], hi: Optional[T]) -> bool:
+            if node is None:
+                return True
+            if lo is not None and not (node.value > lo):
+                return False
+            if hi is not None and not (node.value < hi):
+                return False
+            return go(node.left, lo, node.value) and go(node.right, node.value, hi)
+
+        return go(self, None, None)
+
+    def is_rbt(self) -> bool:
+        """Returns true if this tree is a valid red-black tree."""
+        if self.colour != Colour.Black:
+            return False
+        if not self.is_bst():
+            return False
+
+        def no_red_red(node: Optional["RedBlackTree[T]"]) -> bool:
+            if node is None:
+                return True
+            if node.colour == Colour.Red:
+                if self._is_red(node.left) or self._is_red(node.right):
+                    return False
+            return no_red_red(node.left) and no_red_red(node.right)
+
+        def black_height(node: Optional["RedBlackTree[T]"]) -> Optional[int]:
+            if node is None:
+                return 1  # treating None leaves as black
+            lh = black_height(node.left)
+            rh = black_height(node.right)
+            if lh is None or rh is None or lh != rh:
+                return None
+            return lh + (1 if node.colour == Colour.Black else 0)
+
+        return no_red_red(self) and (black_height(self) is not None)
+
+    def insert(self, x: T):
+        """Inserts a new element into the correct place in this tree."""
+        new_root = self._insert_rec(x)
+
+        # mutating in place so external references remain valid
+        self.value = new_root.value
+        self.colour = new_root.colour
+        self.left = new_root.left
+        self.right = new_root.right
+
+        self.colour = Colour.Black
+
+    def delete(self, x: T):
+        """Deletes an element from this tree, if present."""
+        # Skeleton limitation: cannot represent empty tree as an instance
+        if self.left is None and self.right is None and self.value == x:
+            raise RuntimeError("Cannot delete the only node in the tree (skeleton limitation)")
+
+        new_root = self._delete_rec(x)
+        if new_root is None:
+            #  tree became empty, we already guarded the only node case above
+            raise RuntimeError("Tree became empty after delete (skeleton limitation)")
+
+        self.value = new_root.value
+        self.colour = new_root.colour
+        self.left = new_root.left
+        self.right = new_root.right
+
+        self.colour = Colour.Black
+
+    def contains(self, x: T) -> bool:
+        """Returns true if this tree contains the specified value."""
+        cur: Optional["RedBlackTree[T]"] = self
+        while cur is not None:
+            if x < cur.value:
+                cur = cur.left
+            elif x > cur.value:
+                cur = cur.right
+            else:
+                return True
+        return False
+
+
+
