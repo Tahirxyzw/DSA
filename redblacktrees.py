@@ -214,13 +214,13 @@ class RedBlackTree[T]:
 
     def delete(self, x: T):
         """Deletes an element from this tree, if present."""
-        # Skeleton limitation: cannot represent empty tree as an instance
+        # Skeleton limitation cannot represent empty tree as an instance
         if self.left is None and self.right is None and self.value == x:
             raise RuntimeError("Cannot delete the only node in the tree (skeleton limitation)")
 
         new_root = self._delete_rec(x)
         if new_root is None:
-            #  tree became empty, we already guarded the only node case above
+            #  tree became empty, we already handles the only node case above
             raise RuntimeError("Tree became empty after delete (skeleton limitation)")
 
         self.value = new_root.value

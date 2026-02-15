@@ -42,7 +42,7 @@ class NaiveBST[T]:
                 else:
                     cur = cur.right
             else:
-                raise RuntimeError("Duplicate key insertion is not allowed.")
+                raise RuntimeError("Duplicate key insertion is not allowed")
     
     def contains(self, x: T) -> bool:
         cur: Optional["NaiveBST[T]"] = self
@@ -55,7 +55,7 @@ class NaiveBST[T]:
                 return True
         return False
 
-def time_contains(tree, value, repeats=50):  # Reduced from 100
+def time_contains(tree, value, repeats=50):
     times = []
     for _ in range(repeats):
         start = time.perf_counter()
@@ -63,7 +63,7 @@ def time_contains(tree, value, repeats=50):  # Reduced from 100
         times.append(time.perf_counter() - start)
     return statistics.mean(times)
 
-def time_insert_single(TreeClass, data, repeats=1):  # Reduced from 3
+def time_insert_single(TreeClass, data, repeats=1):
     times = []
     for _ in range(repeats):
         start = time.perf_counter()
@@ -73,88 +73,89 @@ def time_insert_single(TreeClass, data, repeats=1):  # Reduced from 3
     return statistics.mean(times)
 
 def run_experiment():
-    # Reduced sizes - still shows the trend clearly
-    sizes = [5_000, 10_000, 20_000, 40_000, 80_000]  # Removed 160k
+    sizes = [5000, 10000, 20000, 40000, 80000]
     bst_contains_times = []
     rbt_contains_times = []
     bst_insert_times = []
     rbt_insert_times = []
     
     for n in sizes:
-        print(f"Testing n = {n:,}")
+        print(f"n = {n}")
         data = list(range(n))
         
-        # Build trees
         bst = NaiveBST.fromList(data)
         rbt = RedBlackTree.fromList(data)
         
-        # Test contains
         target = n - 1
-        bst_cont = time_contains(bst, target, repeats=50)
-        rbt_cont = time_contains(rbt, target, repeats=50)
+        bst_cont = time_contains(bst, target)
+        rbt_cont = time_contains(rbt, target)
         bst_contains_times.append(bst_cont)
         rbt_contains_times.append(rbt_cont)
         
-        # Test insert
-        bst_ins = time_insert_single(NaiveBST, data, repeats=1)
-        rbt_ins = time_insert_single(RedBlackTree, data, repeats=1)
+        bst_ins = time_insert_single(NaiveBST, data)
+        rbt_ins = time_insert_single(RedBlackTree, data)
         bst_insert_times.append(bst_ins)
         rbt_insert_times.append(rbt_ins)
         
-        print(f"  Contains - BST: {bst_cont*1e6:.2f} μs, RBT: {rbt_cont*1e6:.2f} μs")
-        print(f"  Insert   - BST: {bst_ins*1e6:.2f} μs, RBT: {rbt_ins*1e6:.2f} μs\n")
+        print(f"BST contains: {bst_cont*1e6:.2f} us")
+        print(f"RBT contains: {rbt_cont*1e6:.2f} us")
+        print(f"BST insert: {bst_ins*1e6:.2f} us")
+        print(f"RBT insert: {rbt_ins*1e6:.2f} us")
+        print()
     
-    # Calculate theoretical curves
+    # Theoretical complexity curves
     theo_linear_cont = [bst_contains_times[0] * (n / sizes[0]) for n in sizes]
     theo_log_cont = [rbt_contains_times[0] * (math.log2(n) / math.log2(sizes[0])) for n in sizes]
     theo_linear_ins = [bst_insert_times[0] * (n / sizes[0]) for n in sizes]
     theo_log_ins = [rbt_insert_times[0] * (math.log2(n) / math.log2(sizes[0])) for n in sizes]
     
-    # Plot results
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
+    # Creating plots
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(14, 10))
     
-    # contains() Absolute Times
-    ax1.plot(sizes, [t*1e6 for t in bst_contains_times], marker="o", linewidth=2.5, markersize=8, label="Naive BST", color='#2E86AB')
-    ax1.plot(sizes, [t*1e6 for t in rbt_contains_times], marker="s", linewidth=2.5, markersize=8, label="Red-Black Tree", color='#A23B72')
-    ax1.plot(sizes, [t*1e6 for t in theo_linear_cont], linestyle="--", linewidth=2, alpha=0.6, label="O(n)", color='#2E86AB')
-    ax1.plot(sizes, [t*1e6 for t in theo_log_cont], linestyle="--", linewidth=2, alpha=0.6, label="O(log n)", color='#A23B72')
-    ax1.set_xlabel("Number of elements (n)", fontsize=12, fontweight='bold')
-    ax1.set_ylabel("Average contains() time (μs)", fontsize=12, fontweight='bold')
-    ax1.set_title("contains() Performance: Absolute Times", fontsize=14, fontweight="bold", pad=15)
-    ax1.legend(fontsize=10)
-    ax1.grid(True, alpha=0.3)
+    # Plot 1: contains absolute times
+    ax1.plot(sizes, [t*1e6 for t in bst_contains_times], 'o-', label="Naive BST")
+    ax1.plot(sizes, [t*1e6 for t in rbt_contains_times], 's-', label="Red-Black Tree")
+    ax1.plot(sizes, [t*1e6 for t in theo_linear_cont], '--', alpha=0.5, label="O(n)")
+    ax1.plot(sizes, [t*1e6 for t in theo_log_cont], '--', alpha=0.5, label="O(log n)")
+    ax1.set_xlabel("n")
+    ax1.set_ylabel("Time (microseconds)")
+    ax1.set_title("contains Performance")
+    ax1.legend()
+    ax1.grid(True)
     
-    # contains() Speedup
-    speedups_cont = [bst / rbt for bst, rbt in zip(bst_contains_times, rbt_contains_times)]
-    ax2.plot(sizes, speedups_cont, marker="o", linewidth=2.5, markersize=8, color='#F18F01')
-    ax2.set_xlabel("Number of elements (n)", fontsize=12, fontweight='bold')
-    ax2.set_ylabel("Speedup factor", fontsize=12, fontweight='bold')
-    ax2.set_title("contains() Speedup: RBT vs Naive BST", fontsize=14, fontweight="bold", pad=15)
-    ax2.grid(True, alpha=0.3)
+    # Plot 2: contains speedup
+    speedup_cont = [bst / rbt for bst, rbt in zip(bst_contains_times, rbt_contains_times)]
+    ax2.plot(sizes, speedup_cont, 'o-')
+    ax2.set_xlabel("n")
+    ax2.set_ylabel("Speedup (BST/RBT)")
+    ax2.set_title("contains Speedup")
+    ax2.grid(True)
     
-    # insert() Absolute Times
-    ax3.plot(sizes, [t*1e6 for t in bst_insert_times], marker="o", linewidth=2.5, markersize=8, label="Naive BST", color='#2E86AB')
-    ax3.plot(sizes, [t*1e6 for t in rbt_insert_times], marker="s", linewidth=2.5, markersize=8, label="Red-Black Tree", color='#A23B72')
-    ax3.plot(sizes, [t*1e6 for t in theo_linear_ins], linestyle="--", linewidth=2, alpha=0.6, label="O(n)", color='#2E86AB')
-    ax3.plot(sizes, [t*1e6 for t in theo_log_ins], linestyle="--", linewidth=2, alpha=0.6, label="O(log n)", color='#A23B72')
-    ax3.set_xlabel("Number of elements (n)", fontsize=12, fontweight='bold')
-    ax3.set_ylabel("Average insert() time (μs)", fontsize=12, fontweight='bold')
-    ax3.set_title("insert() Performance: Absolute Times", fontsize=14, fontweight="bold", pad=15)
-    ax3.legend(fontsize=10)
-    ax3.grid(True, alpha=0.3)
+    # Plot 3: insert absolute times
+    ax3.plot(sizes, [t*1e6 for t in bst_insert_times], 'o-', label="Naive BST")
+    ax3.plot(sizes, [t*1e6 for t in rbt_insert_times], 's-', label="Red-Black Tree")
+    ax3.plot(sizes, [t*1e6 for t in theo_linear_ins], '--', alpha=0.5, label="O(n)")
+    ax3.plot(sizes, [t*1e6 for t in theo_log_ins], '--', alpha=0.5, label="O(log n)")
+    ax3.set_xlabel("n")
+    ax3.set_ylabel("Time (microseconds)")
+    ax3.set_title("insert Performance")
+    ax3.legend()
+    ax3.grid(True)
     
-    # insert() Speedup
-    speedups_ins = [bst / rbt for bst, rbt in zip(bst_insert_times, rbt_insert_times)]
-    ax4.plot(sizes, speedups_ins, marker="o", linewidth=2.5, markersize=8, color='#F18F01')
-    ax4.set_xlabel("Number of elements (n)", fontsize=12, fontweight='bold')
-    ax4.set_ylabel("Speedup factor", fontsize=12, fontweight='bold')
-    ax4.set_title("insert() Speedup: RBT vs Naive BST", fontsize=14, fontweight="bold", pad=15)
-    ax4.grid(True, alpha=0.3)
+    # Plot 4: insert speedup
+    speedup_ins = [bst / rbt for bst, rbt in zip(bst_insert_times, rbt_insert_times)]
+    ax4.plot(sizes, speedup_ins, 'o-')
+    ax4.set_xlabel("n")
+    ax4.set_ylabel("Speedup (BST/RBT)")
+    ax4.set_title("insert Speedup")
+    ax4.grid(True)
     
-    plt.tight_layout(pad=3.0)
-    plt.savefig("performance_analysis.png", dpi=300, bbox_inches="tight")
-    print("Results saved to 'performance_analysis.png'")
+    plt.tight_layout()
+    plt.savefig("results.png")
+    print("Saved to results.png")
     plt.show()
 
 if __name__ == "__main__":
     run_experiment()
+
+
